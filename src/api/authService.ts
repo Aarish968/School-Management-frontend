@@ -16,6 +16,7 @@ export interface User {
 
 export interface SignupData {
   full_name: string;
+  username?: string;
   email: string;
   password: string;
   role: "student" | "teacher";
@@ -81,7 +82,7 @@ export interface TeachersResponse {
 }
 
 // Signup request
-export const signup = async (userData: SignupData): Promise<AuthResponse> => {
+export const signup = async (userData: SignupData & { username?: string }): Promise<AuthResponse> => {
   const response = await axios.post(`${API_URL}/register`, userData);
   return response.data;
 };
@@ -125,13 +126,15 @@ export const getMe = async (): Promise<User> => {
 
 
 // Update profile request
-export const updateProfile = async (data: UpdateUser): Promise<User> => {
+export const updateProfile = async (data: UpdateUser | FormData): Promise<User> => {
   const token = localStorage.getItem("token");
   if (!token) throw new Error("No token found");
 
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
   const response = await axios.put(`${API_URL}/me/update`, data, {
     headers: {
       Authorization: `Bearer ${token}`,
+      ...(isFormData ? { "Content-Type": "multipart/form-data" } : {}),
     },
   });
 
@@ -164,3 +167,26 @@ export const getTeachers = async (): Promise<TeachersResponse> => {
   });
   return response.data;
 };
+
+// Axios global interceptor to handle 401/403 and expired tokens
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+    if (status === 401 || status === 403) {
+      try {
+        // inline logout to avoid circular import issues
+        localStorage.removeItem("token");
+        localStorage.removeItem("currentUser");
+        localStorage.removeItem("authToken");
+      } catch {}
+      if (typeof window !== "undefined") {
+        const currentPath = window.location.pathname;
+        if (currentPath !== "/login") {
+          window.location.href = "/login";
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);

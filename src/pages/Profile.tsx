@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { User, Camera, Save, RefreshCw, Mail, UserCheck, MapPin, Calendar, Building, Image as ImageIcon, CheckCircle, AlertCircle, Sparkles, Edit, GraduationCap, BookOpen, Users } from "lucide-react";
-import { getMe, updateProfile, type UpdateUser, type User as UserType } from "../api/authService";
+import { User, Camera, Save, RefreshCw, MapPin, Calendar, Building, CheckCircle, AlertCircle, Sparkles, GraduationCap, BookOpen, Users } from "lucide-react";
+import { getMe, updateProfile, type User as UserType } from "../api/authService";
+import ProfileHeader from "../components/profile/ProfileHeader";
+import AccountInfo from "../components/profile/AccountInfo";
+import StatsCards from "../components/profile/StatsCards";
 
 // Extended user type to include new fields
 interface ExtendedUserType extends UserType {
@@ -338,60 +341,7 @@ const ProfilePage: React.FC = () => {
 
         {/* Main Profile Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden animate-slide-up">
-          {/* Profile Header */}
-          <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-white">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
-            
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <div className="relative group">
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Profile"
-                      className="w-24 h-24 rounded-full object-cover border-4 border-white/30 shadow-lg group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-white/20 border-4 border-white/30 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
-                      <User className="w-10 h-10 text-white" />
-                    </div>
-                  )}
-                  {isEditMode && (
-                    <div className="absolute inset-0 rounded-full bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-white" />
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold mb-1">{user?.full_name || user?.username}</h2>
-                  <p className="text-blue-100 mb-2">@{user?.username}</p>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    user?.role === 'teacher' 
-                      ? 'bg-purple-500/20 text-purple-100 border border-purple-300/30' 
-                      : 'bg-green-500/20 text-green-100 border border-green-300/30'
-                  }`}>
-                    <UserCheck className="w-4 h-4 mr-1" />
-                    {user?.role === 'teacher' ? 'Teacher' : 'Student'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Edit/Cancel Button */}
-              <button
-                onClick={handleEditToggle}
-                className={`px-4 py-2 rounded-xl font-medium flex items-center space-x-2 transition-all duration-200 transform hover:-translate-y-0.5 ${
-                  isEditMode 
-                    ? 'bg-red-500/20 text-red-100 border border-red-300/30 hover:bg-red-500/30' 
-                    : 'bg-white/20 text-white border border-white/30 hover:bg-white/30'
-                }`}
-              >
-                <Edit className="w-4 h-4" />
-                <span>{isEditMode ? 'Cancel' : 'Edit Profile'}</span>
-              </button>
-            </div>
-          </div>
+          <ProfileHeader user={user} imagePreview={imagePreview} isEditMode={isEditMode} onToggleEdit={handleEditToggle} />
 
           {/* Messages */}
           {(success || error) && (
@@ -414,45 +364,7 @@ const ProfilePage: React.FC = () => {
           {/* Form Content */}
           <div className="p-8">
             <div className="space-y-8">
-              {/* Read-only Information */}
-              <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Mail className="w-5 h-5 mr-2 text-gray-600" />
-                  Account Information
-                </h3>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="group">
-                    <label className="block text-sm font-medium text-gray-600 mb-2">Email Address</label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        value={user?.email || ""}
-                        disabled
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed transition-all duration-200"
-                      />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                        <Mail className="w-4 h-4" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="group">
-                    <label className="block text-sm font-medium text-gray-600 mb-2">Username</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={user?.username || ""}
-                        disabled
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed transition-all duration-200"
-                      />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                        <UserCheck className="w-4 h-4" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <AccountInfo email={user?.email} username={(user as any)?.username} />
 
               {/* Personal Information */}
               <div className="space-y-6">
@@ -603,47 +515,10 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Profile Stats/Info Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mt-8">
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/80 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg animate-slide-up" style={{animationDelay: '0.1s'}}>
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Mail className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Email</p>
-                <p className="font-semibold text-gray-900 truncate">{user?.email}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/80 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg animate-slide-up" style={{animationDelay: '0.2s'}}>
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Role</p>
-                <p className="font-semibold text-gray-900 capitalize">{user?.role}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/80 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg animate-slide-up" style={{animationDelay: '0.3s'}}>
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Institution</p>
-                <p className="font-semibold text-gray-900 capitalize">{user?.institution_type || 'Not set'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StatsCards email={user?.email} role={user?.role} institution={user?.institution_type} />
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(-20px); }
           to { opacity: 1; transform: translateY(0); }

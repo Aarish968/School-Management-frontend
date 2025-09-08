@@ -51,6 +51,15 @@ export default function SignupForm() {
       isValid = false;
     }
 
+    // Username validation
+    if (!formData.username.trim()) {
+      newErrors.username = "Username is required";
+      isValid = false;
+    } else if (!/^[a-zA-Z0-9_\.]{3,20}$/.test(formData.username)) {
+      newErrors.username = "3-20 chars, letters/numbers/_/. only";
+      isValid = false;
+    }
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
@@ -123,6 +132,7 @@ export default function SignupForm() {
     try {
       const signupData = {
         full_name: formData.full_name.trim(),
+        username: formData.username.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         role: formData.role
@@ -139,7 +149,7 @@ export default function SignupForm() {
       localStorage.setItem("authToken", token);
 
       // Get user data from /me endpoint
-      let userInfo = null;
+      let userInfo: { id: string; full_name: string; email: string; role: "student" | "teacher" } | null = null;
       try {
         const userData = await getMe();
         console.log("User data from /me endpoint:", userData);
@@ -148,7 +158,7 @@ export default function SignupForm() {
           id: userData.id?.toString() || Date.now().toString(),
           full_name: userData.full_name || formData.full_name,
           email: userData.email || formData.email,
-          role: userData.role ? userData.role.toLowerCase().trim() : formData.role,
+          role: (userData.role ? userData.role.toLowerCase().trim() : formData.role) as "student" | "teacher",
         };
       } catch (meError) {
         console.warn("Failed to get user data from /me endpoint:", meError);
@@ -241,6 +251,36 @@ export default function SignupForm() {
           <p className="text-sm text-red-500 flex items-center space-x-1">
             <AlertCircle className="w-4 h-4" />
             <span>{errors.full_name}</span>
+          </p>
+        )}
+      </div>
+
+      {/* Username */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700">Username</label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <User className="w-5 h-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            name="username"
+            placeholder="Choose a username"
+            className={`w-full pl-12 pr-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.username ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
+            value={formData.username}
+            onChange={handleInputChange}
+            disabled={isLoading}
+          />
+          {errors.username && (
+            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+            </div>
+          )}
+        </div>
+        {errors.username && (
+          <p className="text-sm text-red-500 flex items-center space-x-1">
+            <AlertCircle className="w-4 h-4" />
+            <span>{errors.username}</span>
           </p>
         )}
       </div>
