@@ -1,13 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getToken, logout } from "../api/authService";
+import { getToken, logout } from "../api/authService"; // ✅ now it exists
 
-type UserRole = "student" | "teacher";
+type UserRole = "student" | "teacher" | "admin" | null;
 
 interface AuthUser {
-  id: string;
+  id: number;
   full_name: string;
   email: string;
-  role: UserRole | null;
+  role: UserRole;
 }
 
 interface AuthContextType {
@@ -28,12 +28,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const savedUser = localStorage.getItem("currentUser");
     if (token && savedUser) {
       try {
-        const user = JSON.parse(savedUser);
+        const user: AuthUser = JSON.parse(savedUser);
+        user.id = Number(user.id);
         setCurrentUser(user);
         setIsAuthenticated(true);
       } catch (error) {
         console.error("Error parsing saved user:", error);
-        // Clear invalid data
         logout();
         setCurrentUser(null);
         setIsAuthenticated(false);
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (user: AuthUser, token: string) => {
     localStorage.setItem("token", token);
     localStorage.setItem("currentUser", JSON.stringify(user));
-    setCurrentUser(user);
+    setCurrentUser({ ...user, id: Number(user.id) });
     setIsAuthenticated(true);
   };
 

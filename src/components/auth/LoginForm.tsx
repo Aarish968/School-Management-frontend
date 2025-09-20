@@ -66,7 +66,7 @@ export default function LoginForm() {
     setSuccessMessage("");
 
     try {
-      const data = await apiLogin(email, password);
+      const data = await apiLogin({ email, password });
       console.log("Login API response:", data);
 
       const token = data?.access_token;
