@@ -1,7 +1,9 @@
-import axios from "axios";
+import api from "./api";
 
-const API_URL = "http://localhost:8000/api/v1/auth"; // backend URL - TypeScript file
 
+
+
+// ---------------------- ✅ Types ----------------------
 export interface User {
   id: number;
   full_name: string;
@@ -11,15 +13,15 @@ export interface User {
   address?: string;
   age?: number;
   image?: string;
-  teacher_dept_id?: number; // only for teachers
+  teacher_dept_id?: number;
 }
 
 export interface SignupData {
   full_name: string;
-  username?: string;
   email: string;
   password: string;
   role: "student" | "teacher";
+  username?: string;
 }
 
 export interface LoginData {
@@ -41,152 +43,59 @@ export interface UpdateUser {
   teacher_dept_id?: number;
 }
 
-
-// Students and Teachers interfaces
-export interface SchoolStudent {
-  full_name: string;
-  classes: number;
-  email: string;
-  institution_type: string;
-}
-
-export interface CollegeStudent {
-  full_name: string;
-  department: string;
-  email: string;
-  institution_type: string;
-}
-
-export interface SchoolTeacher {
-  full_name: string;
-  subject: string;
-  email: string;
-  institution_type: string;
-}
-
-export interface CollegeTeacher {
-  full_name: string;
-  department: string;
-  email: string;
-  institution_type: string;
-}
-
 export interface StudentsResponse {
-  school_students: SchoolStudent[];
-  college_students: CollegeStudent[];
+  school_students: Array<{ full_name: string; classes: number; email: string; institution_type: string }>;
+  college_students: Array<{ full_name: string; department: string; email: string; institution_type: string }>;
 }
 
 export interface TeachersResponse {
-  school_teachers: SchoolTeacher[];
-  college_teachers: CollegeTeacher[];
+  school_teachers: Array<{ full_name: string; subject: string; email: string; institution_type: string }>;
+  college_teachers: Array<{ full_name: string; department: string; email: string; institution_type: string }>;
 }
 
-// Signup request
-export const signup = async (userData: SignupData & { username?: string }): Promise<AuthResponse> => {
-  const response = await axios.post(`${API_URL}/register`, userData);
-  return response.data;
+// ---------------------- ✅ Auth APIs ----------------------
+
+export const signup = async (userData: SignupData): Promise<AuthResponse> => {
+  const res = await api.post("/auth/register", userData);
+  return res.data;
 };
 
-// Login request
-export const login = async (email: string, password: string): Promise<AuthResponse> => {
-  const response = await axios.post(`${API_URL}/login`, {
-    email,
-    password,
-  });
-  if (response.data.access_token) {
-    localStorage.setItem("token", response.data.access_token);
+export const login = async ({ email, password }: LoginData): Promise<AuthResponse> => {
+  const res = await api.post("/auth/login", { email, password });
+  if (res.data.access_token) {
+    localStorage.setItem("token", res.data.access_token);
   }
-  return response.data;
+  return res.data;
 };
 
-// Get token from localStorage
-export const getToken = (): string | null => {
+export const getMe = async (): Promise<User> => {
+  const res = await api.get("/auth/me");
+  return res.data;
+};
+
+export const updateProfile = async (data: UpdateUser | FormData): Promise<User> => {
+  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
+  const res = await api.put("/auth/me/update", data, {
+    headers: isFormData ? { "Content-Type": "multipart/form-data" } : {},
+  });
+  return res.data;
+};
+
+export const getStudents = async (): Promise<StudentsResponse> => {
+  const res = await api.get("/auth/students");
+  return res.data;
+};
+
+export const getTeachers = async (): Promise<TeachersResponse> => {
+  const res = await api.get("/auth/teachers");
+  return res.data;
+};
+
+export function getToken(): string | null {
   return localStorage.getItem("token");
-};
+}
 
-// Logout
 export const logout = (): void => {
   localStorage.removeItem("token");
   localStorage.removeItem("currentUser");
-  localStorage.removeItem("authToken");
 };
-
-// Get current user info
-export const getMe = async (): Promise<User> => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-
-  const response = await axios.get(`${API_URL}/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return response.data;
-};
-
-
-// Update profile request
-export const updateProfile = async (data: UpdateUser | FormData): Promise<User> => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-
-  const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
-  const response = await axios.put(`${API_URL}/me/update`, data, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(isFormData ? { "Content-Type": "multipart/form-data" } : {}),
-    },
-  });
-
-  return response.data;
-};
-
-
-// Get all students (school + college)
-export const getStudents = async (): Promise<StudentsResponse> => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-
-  const response = await axios.get(`${API_URL}/students`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return response.data;
-};
-
-// Get all teachers (school + college)
-export const getTeachers = async (): Promise<TeachersResponse> => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-
-  const response = await axios.get(`${API_URL}/teachers`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return response.data;
-};
-
-// Axios global interceptor to handle 401/403 and expired tokens
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error?.response?.status;
-    if (status === 401 || status === 403) {
-      try {
-        // inline logout to avoid circular import issues
-        localStorage.removeItem("token");
-        localStorage.removeItem("currentUser");
-        localStorage.removeItem("authToken");
-      } catch {}
-      if (typeof window !== "undefined") {
-        const currentPath = window.location.pathname;
-        if (currentPath !== "/login") {
-          window.location.href = "/login";
-        }
-      }
-    }
-    return Promise.reject(error);
-  }
-);
