@@ -1,13 +1,15 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getToken, logout } from "../api/authService"; // ✅ now it exists
+import { getToken, logout } from "../api/authService";
 
 type UserRole = "student" | "teacher" | "admin" | null;
+type InstitutionType = "school" | "college" | null;
 
 interface AuthUser {
   id: number;
   full_name: string;
   email: string;
   role: UserRole;
+  institution_type: InstitutionType;
 }
 
 interface AuthContextType {
@@ -41,18 +43,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = (user: AuthUser, token: string) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("currentUser", JSON.stringify(user));
-    setCurrentUser({ ...user, id: Number(user.id) });
-    setIsAuthenticated(true);
+  const login = (user: any, token: string) => {
+  const finalUser: AuthUser = {
+    id: Number(user.id),
+    full_name: user.full_name,
+    email: user.email,
+    role: user.role,
+    institution_type: user.institution_type || null, // ✅ include this
   };
 
+  console.log("Logging in with user:", finalUser);
+
+  localStorage.setItem("token", token);
+  localStorage.setItem("currentUser", JSON.stringify(finalUser));
+  setCurrentUser(finalUser);
+  setIsAuthenticated(true);
+};  
+
   const logoutUser = () => {
-    logout();
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-  };
+  logout();
+  setCurrentUser(null);
+  setIsAuthenticated(false);
+};
 
   return (
     <AuthContext.Provider value={{ currentUser, isAuthenticated, login, logoutUser }}>

@@ -64,81 +64,46 @@ export default function LoginForm() {
     setIsLoading(true);
     setErrors({ email: "", password: "", general: "" });
     setSuccessMessage("");
+try {
+  const data = await apiLogin({ email, password });
+  console.log("Login API response:", data);
 
+  const token = data?.access_token;
+  if (!token) throw new Error("No authentication token received from server");
+
+  localStorage.setItem("token", token);
+  localStorage.setItem("authToken", token);
+
+  // Use backend's user object directly
+  let userInfo = null;
+
+  if (data?.user) {
+    userInfo = data.user; // ✅ already contains institution_type
+  } else {
+    // fallback to /me endpoint if needed
     try {
-      const data = await apiLogin({ email, password });
-      console.log("Login API response:", data);
+      const userData = await getMe();
+      userInfo = userData;
+    } catch (meError) {
+      console.warn("Failed to get user data from /me:", meError);
+    }
+  }
 
-      const token = data?.access_token;
-      if (!token) throw new Error("No authentication token received from server");
+  if (!userInfo) throw new Error("Unable to retrieve user info");
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("authToken", token);
+  // Save user with institution_type intact
+  localStorage.setItem("currentUser", JSON.stringify(userInfo));
 
-      // Get user data from /me endpoint
-      let userInfo = null;
-      try {
-        const userData = await getMe();
-        console.log("User data from /me endpoint:", userData);
-        
-        userInfo = {
-          id: userData.id?.toString() || Date.now().toString(),
-          full_name: userData.full_name || "User",
-          email: userData.email || email,
-          role: userData.role ? userData.role.toLowerCase().trim() : null,
-        };
-      } catch (meError) {
-        console.warn("Failed to get user data from /me endpoint:", meError);
-        
-        // Fallback: try to decode JWT for user info
-        try {
-          const decoded = decodeJwt(token);
-          if (decoded) {
-            userInfo = {
-              id: decoded?.sub || decoded?.id || Date.now().toString(),
-              full_name: decoded?.name || decoded?.full_name || "User",
-              email: decoded?.email || email,
-              role: decoded?.role ? decoded.role.toLowerCase().trim() : null,
-            };
-          }
-        } catch (jwtError) {
-          console.warn("JWT decode failed:", jwtError);
-        }
-      }
+  // Update auth context
+ authLogin(userInfo, token);
 
-      // If still no user info, try to get from API response
-      if (!userInfo && data?.user) {
-        userInfo = {
-          id: data.user.id?.toString() || Date.now().toString(),
-          full_name: data.user.full_name || data.user.name || "User",
-          email: data.user.email || email,
-          role: data.user.role ? data.user.role.toLowerCase().trim() : null,
-        };
-      }
+  setSuccessMessage(`Welcome back, ${userInfo.full_name}!`);
 
-      // Fallback if no user info available
-      if (!userInfo) {
-        userInfo = {
-          id: Date.now().toString(),
-          full_name: "User",
-          email: email,
-          role: null,
-        };
-      }
-
-      // Store user data
-      localStorage.setItem("currentUser", JSON.stringify(userInfo));
-
-      // Update auth context
-      authLogin(userInfo, token);
-      
-      setSuccessMessage(`Welcome back, ${userInfo.full_name}!`);
-
-      // Redirect based on role
-      setTimeout(() => {
-        redirectBasedOnRole(userInfo.role);
-      });
-    } catch (err: any) {
+  // Redirect
+  setTimeout(() => {
+    redirectBasedOnRole(userInfo.role);
+  });
+} catch (err: any)   {
       console.error("Login error:", err);
 
       let errorMessage = "Login failed. Please try again.";

@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import {
-  createAttendance,
-  getAttendance,
-  updateAttendance,
-} from "../api/attendanceService";
-import { getTeachers } from "../api/authService"; // your teachers API
+import { createAttendance, getAttendance } from "../api/attendanceService";
+import { getTeachers } from "../api/authService";
 
-const AttendancePage = () => {
+const StudentAttendancePage = () => {
   const [records, setRecords] = useState([]);
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -18,7 +14,6 @@ const AttendancePage = () => {
   const [teachers, setTeachers] = useState([]);
   const [selectedTeacher, setSelectedTeacher] = useState("");
 
-  const role = currentUser?.role ?? null;
   const institutionType = currentUser?.institution_type ?? null;
 
   const fetchAttendance = async () => {
@@ -41,7 +36,6 @@ const AttendancePage = () => {
   const openModal = async () => {
     try {
       const data = await getTeachers();
-      // Filter based on institution type
       if (institutionType === "school") {
         setTeachers(data.school_teachers);
       } else if (institutionType === "college") {
@@ -68,72 +62,40 @@ const AttendancePage = () => {
     }
   };
 
-  const handleUpdate = async (attendanceId, status) => {
-    try {
-      await updateAttendance(attendanceId, status);
-      fetchAttendance();
-    } catch (err) {
-      alert(err.detail || "Failed to update attendance");
-    }
-  };
-
   if (loading) return <p>Loading attendance...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Attendance</h2>
+    <div className="p-25">
+      <h2 className="text-xl font-bold mb-4">My Attendance</h2>
 
-      {/* Student: create attendance */}
-      {role === "student" && (
-        <div className="mb-10">
-          <button
-            onClick={openModal}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            Mark Attendance
-          </button>
-        </div>
-      )}
+      <div className="mb-6">
+        <button
+          onClick={openModal}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Mark Attendance
+        </button>
+      </div>
 
-      {/* Attendance list */}
       <table className="min-w-full border border-gray-300">
         <thead>
           <tr className="bg-gray-200">
             <th className="px-4 py-2 border">ID</th>
-            <th className="px-4 py-2 border">Student</th>
+            <th className="px-4 py-2 border">Teacher</th>
             <th className="px-4 py-2 border">Status</th>
             <th className="px-4 py-2 border">Date</th>
-            {role === "teacher" && (
-              <th className="px-4 py-2 border">Actions</th>
-            )}
           </tr>
         </thead>
         <tbody>
           {records.map((rec) => (
             <tr key={rec.id} className="border">
               <td className="px-4 py-2 border">{rec.id}</td>
-              <td className="px-4 py-2 border">{rec.student_id}</td>
+              <td className="px-4 py-2 border">{rec.teacher.full_name}</td>
               <td className="px-4 py-2 border">{rec.status}</td>
               <td className="px-4 py-2 border">
                 {new Date(rec.date).toLocaleString()}
               </td>
-              {role === "teacher" && (
-                <td className="px-4 py-2 border space-x-2">
-                  <button
-                    onClick={() => handleUpdate(rec.id, "present")}
-                    className="px-3 py-1 bg-green-500 text-white rounded"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => handleUpdate(rec.id, "absent")}
-                    className="px-3 py-1 bg-red-500 text-white rounded"
-                  >
-                    Reject
-                  </button>
-                </td>
-              )}
             </tr>
           ))}
         </tbody>
@@ -177,4 +139,4 @@ const AttendancePage = () => {
   );
 };
 
-export default AttendancePage;
+export default StudentAttendancePage;

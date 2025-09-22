@@ -62,10 +62,7 @@ export const signup = async (userData: SignupData): Promise<AuthResponse> => {
 
 export const login = async ({ email, password }: LoginData): Promise<AuthResponse> => {
   const res = await api.post("/auth/login", { email, password });
-  if (res.data.access_token) {
-    localStorage.setItem("token", res.data.access_token);
-  }
-  return res.data;
+  return res.data; // return backend response as-is
 };
 
 export const getMe = async (): Promise<User> => {
