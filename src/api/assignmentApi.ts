@@ -1,5 +1,7 @@
 import api from "./api";
 
+// ------------------- Types ------------------------------------------
+
 export type Attachment = {
   id: number;
   filename: string;
@@ -18,6 +20,8 @@ export type Assignment = {
   attachments: Attachment[];
 };
 
+// ------------------------ Get API ----------------------------------------
+
 export const getAssignments = async (): Promise<Assignment[]> => {
   const res = await api.get<Assignment[]>("/assignments/assignments");
   return res.data;
@@ -26,4 +30,14 @@ export const getAssignments = async (): Promise<Assignment[]> => {
 export const getAssignmentById = async (id: number): Promise<Assignment> => {
   const res = await api.get<Assignment>(`/assignments/assignments/${id}`);
   return res.data;
+};
+
+// ------------------------- Post API ----------------------------------------
+
+export const uploadAssignment = async (formData: FormData) => {
+  const response = await api.post('/assignments/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+
+  return response.data;
 };

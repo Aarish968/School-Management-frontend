@@ -12,9 +12,11 @@ import {
   Plus,
   Trash2,
   User,
-  Loader
+  Loader,
+  AlertCircle
 } from 'lucide-react';
 import { getStudents, getTeachers } from '../api/authService';
+import { uploadAssignment } from '../api/assignmentApi';
 
 const HomeworkUploadPage = () => {
   // State management
@@ -35,7 +37,8 @@ const HomeworkUploadPage = () => {
     isSubmitting: false,
     submitSuccess: false,
     isLoadingStudents: false,
-    isLoadingTeachers: false
+    isLoadingTeachers: false,
+    submitError: null
   });
 
   // API data states
@@ -52,14 +55,46 @@ const HomeworkUploadPage = () => {
 
   const fileInputRef = useRef(null);
 
+  // Data formatting functions
+  const formatAssignmentData = useCallback((formData, selectedStudentsData, assignedTeacherId) => {
+    const apiFormData = new FormData();
+
+    // Add basic fields
+    apiFormData.append('title', formData.title);
+    apiFormData.append('description', formData.description);
+    apiFormData.append('type', formData.type);
+    apiFormData.append('assigned_teacher_id', assignedTeacherId.toString());
+    apiFormData.append('due_date', formData.dueDate);
+    
+    if (formData.dueTime) {
+      apiFormData.append('due_time', formData.dueTime);
+    }
+
+    // Add students - FIXED: Extract actual numeric ID from the original data
+    selectedStudentsData.forEach((student) => {
+      // Get the original student data to extract the real ID
+      const studentType = formData.type === 'homework' ? 'school_students' : 'college_students';
+      const studentIndex = parseInt(student.id.split('_').pop());
+      const originalStudent = apiData.students[studentType][studentIndex];
+      
+      // Use the actual ID from the original data, or fallback to index
+      const actualStudentId = originalStudent?.id || studentIndex;
+      apiFormData.append('students', actualStudentId.toString());
+    });
+
+    // Add attachments
+    formData.attachments.forEach((attachment) => {
+      apiFormData.append('attachments', attachment.file, attachment.name);
+    });
+
+    return apiFormData;
+  }, [apiData.students]);
+
   // API functions
   const fetchStudents = useCallback(async () => {
     setUiState(prev => ({ ...prev, isLoadingStudents: true }));
     try {
-      // Replace with your actual API endpoint
       const data = await getStudents();
-      // const data = await response;
-      
       setApiData(prev => ({
         ...prev,
         students: data
@@ -71,16 +106,16 @@ const HomeworkUploadPage = () => {
         ...prev,
         students: {
           school_students: [
-            { full_name: 'Alice Johnson', classes: 10, email: 'alice@school.com', institution_type: 'school' },
-            { full_name: 'Bob Smith', classes: 10, email: 'bob@school.com', institution_type: 'school' },
-            { full_name: 'Carol Davis', classes: 11, email: 'carol@school.com', institution_type: 'school' },
-            { full_name: 'David Wilson', classes: 9, email: 'david@school.com', institution_type: 'school' }
+            { id: 1, full_name: 'Alice Johnson', classes: 10, email: 'alice@school.com', institution_type: 'school' },
+            { id: 2, full_name: 'Bob Smith', classes: 10, email: 'bob@school.com', institution_type: 'school' },
+            { id: 3, full_name: 'Carol Davis', classes: 11, email: 'carol@school.com', institution_type: 'school' },
+            { id: 4, full_name: 'David Wilson', classes: 9, email: 'david@school.com', institution_type: 'school' }
           ],
           college_students: [
-            { full_name: 'Emma Brown', department: 'Computer Science', email: 'emma@college.com', institution_type: 'college' },
-            { full_name: 'Frank Miller', department: 'Mechanical Engineering', email: 'frank@college.com', institution_type: 'college' },
-            { full_name: 'Grace Lee', department: 'Business Administration', email: 'grace@college.com', institution_type: 'college' },
-            { full_name: 'Henry Taylor', department: 'Biology', email: 'henry@college.com', institution_type: 'college' }
+            { id: 5, full_name: 'Emma Brown', department: 'Computer Science', email: 'emma@college.com', institution_type: 'college' },
+            { id: 6, full_name: 'Frank Miller', department: 'Mechanical Engineering', email: 'frank@college.com', institution_type: 'college' },
+            { id: 7, full_name: 'Grace Lee', department: 'Business Administration', email: 'grace@college.com', institution_type: 'college' },
+            { id: 8, full_name: 'Henry Taylor', department: 'Biology', email: 'henry@college.com', institution_type: 'college' }
           ]
         }
       }));
@@ -92,10 +127,7 @@ const HomeworkUploadPage = () => {
   const fetchTeachers = useCallback(async () => {
     setUiState(prev => ({ ...prev, isLoadingTeachers: true }));
     try {
-      // Replace with your actual API endpoint
       const data = await getTeachers();
-      // const data = await response.json();
-      
       setApiData(prev => ({
         ...prev,
         teachers: data
@@ -107,14 +139,14 @@ const HomeworkUploadPage = () => {
         ...prev,
         teachers: {
           school_teachers: [
-            { full_name: 'Dr. Sarah Johnson', subject: 'Mathematics', email: 'sarah@school.com', institution_type: 'school' },
-            { full_name: 'Mr. Michael Brown', subject: 'English', email: 'michael@school.com', institution_type: 'school' },
-            { full_name: 'Ms. Lisa Wilson', subject: 'Physics', email: 'lisa@school.com', institution_type: 'school' }
+            { id: 1, full_name: 'Dr. Sarah Johnson', subject: 'Mathematics', email: 'sarah@school.com', institution_type: 'school' },
+            { id: 2, full_name: 'Mr. Michael Brown', subject: 'English', email: 'michael@school.com', institution_type: 'school' },
+            { id: 3, full_name: 'Ms. Lisa Wilson', subject: 'Physics', email: 'lisa@school.com', institution_type: 'school' }
           ],
           college_teachers: [
-            { full_name: 'Dr. James Davis', department: 'Computer Science', email: 'james@college.com', institution_type: 'college' },
-            { full_name: 'Dr. Amanda White', department: 'Mechanical Engineering', email: 'amanda@college.com', institution_type: 'college' },
-            { full_name: 'Prof. Robert Clark', department: 'Business Administration', email: 'robert@college.com', institution_type: 'college' }
+            { id: 4, full_name: 'Dr. James Davis', department: 'Computer Science', email: 'james@college.com', institution_type: 'college' },
+            { id: 5, full_name: 'Dr. Amanda White', department: 'Mechanical Engineering', email: 'amanda@college.com', institution_type: 'college' },
+            { id: 6, full_name: 'Prof. Robert Clark', department: 'Business Administration', email: 'robert@college.com', institution_type: 'college' }
           ]
         }
       }));
@@ -137,7 +169,8 @@ const HomeworkUploadPage = () => {
         name: student.full_name,
         class: `Class ${student.classes}`,
         email: student.email,
-        institution_type: student.institution_type
+        institution_type: student.institution_type,
+        originalId: student.id // Store the original ID
       }));
     } else {
       return apiData.students.college_students.map((student, index) => ({
@@ -145,7 +178,8 @@ const HomeworkUploadPage = () => {
         name: student.full_name,
         class: student.department,
         email: student.email,
-        institution_type: student.institution_type
+        institution_type: student.institution_type,
+        originalId: student.id // Store the original ID
       }));
     }
   }, [formData.type, apiData.students]);
@@ -157,7 +191,8 @@ const HomeworkUploadPage = () => {
         name: teacher.full_name,
         subject: teacher.subject,
         email: teacher.email,
-        institution_type: teacher.institution_type
+        institution_type: teacher.institution_type,
+        originalId: teacher.id // Store the original ID
       }));
     } else {
       return apiData.teachers.college_teachers.map((teacher, index) => ({
@@ -165,7 +200,8 @@ const HomeworkUploadPage = () => {
         name: teacher.full_name,
         subject: teacher.department,
         email: teacher.email,
-        institution_type: teacher.institution_type
+        institution_type: teacher.institution_type,
+        originalId: teacher.id // Store the original ID
       }));
     }
   }, [formData.type, apiData.teachers]);
@@ -245,28 +281,64 @@ const HomeworkUploadPage = () => {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!formData.title.trim() || !formData.assignedTeacher || !formData.dueDate) {
-      alert('Please fill in all required fields');
+    // Validation
+    if (!formData.title.trim()) {
+      alert('Please enter assignment title');
+      return;
+    }
+    
+    if (!formData.assignedTeacher) {
+      alert('Please select a teacher');
+      return;
+    }
+    
+    if (!formData.dueDate) {
+      alert('Please select due date');
       return;
     }
 
-    setUiState(prev => ({ ...prev, isSubmitting: true }));
+    if (formData.selectedStudents.length === 0) {
+      alert('Please select at least one student');
+      return;
+    }
+
+    setUiState(prev => ({ ...prev, isSubmitting: true, submitError: null }));
     
     try {
-      // Simulate API call - Replace with your actual endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get selected students data
+      const selectedStudentsData = formData.selectedStudents.map(id => 
+        filteredStudents.find(s => s.id === id)
+      ).filter(Boolean);
+
+      // FIXED: Extract teacher ID correctly
+      const selectedTeacher = filteredTeachers.find(t => t.id === formData.assignedTeacher);
+      const teacherId = selectedTeacher?.originalId || parseInt(formData.assignedTeacher.split('_').pop());
+
+      console.log('Selected Teacher:', selectedTeacher);
+      console.log('Teacher ID to send:', teacherId);
+      console.log('Selected Students:', selectedStudentsData);
+
+      // Format data for API
+      const apiFormData = formatAssignmentData(
+        formData, 
+        selectedStudentsData, 
+        teacherId
+      );
+
+      console.log('Sending API payload:');
+      // Log FormData contents for debugging
+      for (let [key, value] of apiFormData.entries()) {
+        console.log(key, value);
+      }
       
-      // Prepare submission data
-      const submissionData = {
-        ...formData,
-        institution_type: formData.type === 'homework' ? 'school' : 'college'
-      };
+      // Call the upload API
+      const response = await uploadAssignment(apiFormData);
       
-      console.log('Assignment Data:', submissionData);
+      console.log('Assignment uploaded successfully:', response);
       
       setUiState(prev => ({ ...prev, submitSuccess: true }));
       
-      // Reset form after 2 seconds
+      // Reset form after 3 seconds
       setTimeout(() => {
         setFormData({
           title: '',
@@ -278,16 +350,23 @@ const HomeworkUploadPage = () => {
           dueTime: '',
           attachments: []
         });
-        setUiState(prev => ({ ...prev, submitSuccess: false }));
-      }, 2000);
+        setUiState(prev => ({ 
+          ...prev, 
+          submitSuccess: false, 
+          submitError: null 
+        }));
+      }, 3000);
       
     } catch (error) {
       console.error('Submission error:', error);
-      alert('Error uploading assignment. Please try again.');
+      setUiState(prev => ({ 
+        ...prev, 
+        submitError: error.message || 'Failed to upload assignment. Please try again.' 
+      }));
     } finally {
       setUiState(prev => ({ ...prev, isSubmitting: false }));
     }
-  }, [formData]);
+  }, [formData, filteredStudents, filteredTeachers, formatAssignmentData]);
 
   // Utility functions
   const formatFileSize = useCallback((bytes) => {
@@ -553,18 +632,13 @@ const HomeworkUploadPage = () => {
               <button
                 type="button"
                 onClick={() => setUiState(prev => ({ ...prev, showStudentModal: true }))}
-                disabled={uiState.isLoadingStudents || uiState.studentsError}
+                disabled={uiState.isLoadingStudents}
                 className="w-full mb-6 inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {uiState.isLoadingStudents ? (
                   <>
                     <Loader className="w-5 h-5 mr-3 animate-spin" />
                     Loading Students...
-                  </>
-                ) : uiState.studentsError ? (
-                  <>
-                    <AlertCircle className="w-5 h-5 mr-3" />
-                    Error Loading Students
                   </>
                 ) : (
                   <>
@@ -573,23 +647,6 @@ const HomeworkUploadPage = () => {
                   </>
                 )}
               </button>
-
-              {uiState.studentsError && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-                      <span className="text-red-700 text-sm">Failed to load students</span>
-                    </div>
-                    <button
-                      onClick={fetchStudents}
-                      className="text-red-600 hover:text-red-800 text-sm font-medium underline"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                </div>
-              )}
 
               <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
                 {getSelectedStudentsDisplay.length > 0 ? (
@@ -620,6 +677,16 @@ const HomeworkUploadPage = () => {
 
             {/* Submit Button */}
             <div className="animate-slide-in-right" style={{animationDelay: '0.2s'}}>
+              {/* Error Message */}
+              {uiState.submitError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl">
+                  <div className="flex items-center">
+                    <AlertCircle className="w-5 h-5 text-red-500 mr-3" />
+                    <p className="text-red-700 text-sm">{uiState.submitError}</p>
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={handleSubmit}
                 disabled={uiState.isSubmitting || uiState.submitSuccess}
@@ -735,9 +802,7 @@ const HomeworkUploadPage = () => {
                             </div>
                             <div>
                               <p className="font-bold text-gray-800">{student.name}</p>
-                              <p className="text-sm text-gray-500">
-                                {formData.type === 'homework' ? `Class ${student.class}` : student.class}
-                              </p>
+                              <p className="text-sm text-gray-500">{student.class}</p>
                               <p className="text-xs text-gray-400">{student.email}</p>
                             </div>
                           </div>
