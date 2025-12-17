@@ -38,7 +38,7 @@ export default function Home() {
     setIsVisible(true);
     
     // Mouse tracking for parallax effects
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
         x: (e.clientX / window.innerWidth) * 100,
         y: (e.clientY / window.innerHeight) * 100

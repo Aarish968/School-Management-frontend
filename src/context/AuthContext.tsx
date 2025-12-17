@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { getToken, logout } from "../api/authService";
 
 type UserRole = "student" | "teacher" | "admin" | null;

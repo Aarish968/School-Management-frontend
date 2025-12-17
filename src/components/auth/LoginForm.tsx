@@ -4,23 +4,6 @@ import { login as apiLogin, getMe } from "../../api/authService";
 import { useAuth } from "../../context/AuthContext";
 import { Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 
-function decodeJwt(token: string): any | null {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error("JWT decode error:", error);
-    return null;
-  }
-}
-
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -95,7 +78,13 @@ try {
   localStorage.setItem("currentUser", JSON.stringify(userInfo));
 
   // Update auth context
- authLogin(userInfo, token);
+ authLogin({
+   id: userInfo.id,
+   full_name: userInfo.full_name,
+   email: userInfo.email,
+   role: userInfo.role,
+   institution_type: userInfo.institution_type || null
+ }, token);
 
   setSuccessMessage(`Welcome back, ${userInfo.full_name}!`);
 

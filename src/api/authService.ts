@@ -22,6 +22,7 @@ export interface SignupData {
   password: string;
   role: "student" | "teacher";
   username?: string;
+  institution_type?: "school" | "college";
 }
 
 export interface LoginData {

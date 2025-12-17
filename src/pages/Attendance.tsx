@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { createAttendance, getAttendance } from "../api/attendanceService";
 import { getTeachers } from "../api/authService";
 
 const StudentAttendancePage = () => {
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState<any[]>([]);
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -12,7 +12,7 @@ const StudentAttendancePage = () => {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
-  const [teachers, setTeachers] = useState([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
   const [selectedTeacher, setSelectedTeacher] = useState("");
   const [modalLoading, setModalLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -25,8 +25,8 @@ const StudentAttendancePage = () => {
     try {
       const data = await getAttendance();
       setRecords(data);
-    } catch (err) {
-      setError(err.detail || "Failed to fetch attendance");
+    } catch (err: any) {
+      setError(err?.detail || "Failed to fetch attendance");
     } finally {
       setLoading(false);
     }
@@ -47,8 +47,8 @@ const StudentAttendancePage = () => {
         setTeachers(data.college_teachers);
       }
       setShowModal(true);
-    } catch (err) {
-      setError(err.detail || "Failed to fetch teachers");
+    } catch (err: any) {
+      setError(err?.detail || "Failed to fetch teachers");
     } finally {
       setModalLoading(false);
     }
@@ -72,8 +72,8 @@ const StudentAttendancePage = () => {
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err) {
-      setError(err.detail || "Failed to create attendance");
+    } catch (err: any) {
+      setError(err?.detail || "Failed to create attendance");
     } finally {
       setSubmitting(false);
     }
@@ -85,7 +85,7 @@ const StudentAttendancePage = () => {
     setError("");
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: {
         bg: "bg-gradient-to-r from-amber-100 to-yellow-100",
@@ -120,7 +120,7 @@ const StudentAttendancePage = () => {
     );
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -401,7 +401,7 @@ const StudentAttendancePage = () => {
                       onChange={(e) => setSelectedTeacher(e.target.value)}
                     >
                       <option value="">-- Select a teacher --</option>
-                      {teachers.map((t, i) => (
+                      {teachers.map((t: any, i: number) => (
                         <option key={i} value={t.id}>
                           {t.full_name} ({t.email})
                         </option>
@@ -450,7 +450,7 @@ const StudentAttendancePage = () => {
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in-up {
           from {
             opacity: 0;

@@ -11,7 +11,8 @@ export default function SignupForm() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "student" as "student" | "teacher"
+    role: "student" as "student" | "teacher",
+    institution_type: "school" as "school" | "college"
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -22,6 +23,7 @@ export default function SignupForm() {
     password: "",
     confirmPassword: "",
     role: "",
+    institution_type: "",
     general: ""
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +40,7 @@ export default function SignupForm() {
       password: "",
       confirmPassword: "",
       role: "",
+      institution_type: "",
       general: ""
     };
     let isValid = true;
@@ -94,6 +97,12 @@ export default function SignupForm() {
       isValid = false;
     }
 
+    // Institution type validation
+    if (!formData.institution_type) {
+      newErrors.institution_type = "Please select institution type";
+      isValid = false;
+    }
+
     setErrors(newErrors);
     return isValid;
   };
@@ -125,6 +134,7 @@ export default function SignupForm() {
       password: "",
       confirmPassword: "",
       role: "",
+      institution_type: "",
       general: ""
     });
     setSuccessMessage("");
@@ -135,7 +145,8 @@ export default function SignupForm() {
         username: formData.username.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        institution_type: formData.institution_type
       };
 
       const data = await apiSignup(signupData);
@@ -176,7 +187,13 @@ export default function SignupForm() {
       localStorage.setItem("currentUser", JSON.stringify(userInfo));
 
       // Update auth context
-      authLogin(userInfo, token);
+      authLogin({
+        id: parseInt(userInfo.id),
+        full_name: userInfo.full_name,
+        email: userInfo.email,
+        role: userInfo.role,
+        institution_type: null // Add required field
+      }, token);
 
       setSuccessMessage(`Welcome to SchoolMS, ${userInfo.full_name}!`);
 
@@ -225,159 +242,191 @@ export default function SignupForm() {
         </div>
       )}
 
-      {/* Full Name */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Full Name</label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <User className="w-5 h-5 text-gray-400" />
+      {/* Row 1: Full Name & Username */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Full Name */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Full Name</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <User className="w-5 h-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              name="full_name"
+              placeholder="Enter your full name"
+              className={`w-full pl-12 pr-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.full_name ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
+              value={formData.full_name}
+              onChange={handleInputChange}
+              disabled={isLoading}
+            />
+            {errors.full_name && (
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+              </div>
+            )}
           </div>
-          <input
-            type="text"
-            name="full_name"
-            placeholder="Enter your full name"
-            className={`w-full pl-12 pr-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.full_name ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
-            value={formData.full_name}
-            onChange={handleInputChange}
-            disabled={isLoading}
-          />
           {errors.full_name && (
-            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-400" />
-            </div>
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.full_name}</span>
+            </p>
           )}
         </div>
-        {errors.full_name && (
-          <p className="text-sm text-red-500 flex items-center space-x-1">
-            <AlertCircle className="w-4 h-4" />
-            <span>{errors.full_name}</span>
-          </p>
-        )}
-      </div>
 
-      {/* Username */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Username</label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <User className="w-5 h-5 text-gray-400" />
+        {/* Username */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Username</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <User className="w-5 h-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              name="username"
+              placeholder="Choose a username"
+              className={`w-full pl-12 pr-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.username ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
+              value={formData.username}
+              onChange={handleInputChange}
+              disabled={isLoading}
+            />
+            {errors.username && (
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+              </div>
+            )}
           </div>
-          <input
-            type="text"
-            name="username"
-            placeholder="Choose a username"
-            className={`w-full pl-12 pr-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.username ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
-            value={formData.username}
-            onChange={handleInputChange}
-            disabled={isLoading}
-          />
           {errors.username && (
-            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-400" />
-            </div>
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.username}</span>
+            </p>
           )}
         </div>
-        {errors.username && (
-          <p className="text-sm text-red-500 flex items-center space-x-1">
-            <AlertCircle className="w-4 h-4" />
-            <span>{errors.username}</span>
-          </p>
-        )}
       </div>
 
-      {/* Email */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Email Address</label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Mail className="w-5 h-5 text-gray-400" />
+      {/* Row 2: Email & Institution Type */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Email */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Email Address</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Mail className="w-5 h-5 text-gray-400" />
+            </div>
+            <input
+              type="email"
+              name="email"
+              placeholder="Enter your email"
+              className={`w-full pl-12 pr-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.email ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
+              value={formData.email}
+              onChange={handleInputChange}
+              disabled={isLoading}
+            />
+            {errors.email && (
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+              </div>
+            )}
           </div>
-          <input
-            type="email"
-            name="email"
-            placeholder="Enter your email"
-            className={`w-full pl-12 pr-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.email ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
-            value={formData.email}
-            onChange={handleInputChange}
-            disabled={isLoading}
-          />
           {errors.email && (
-            <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-400" />
-            </div>
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.email}</span>
+            </p>
           )}
         </div>
-        {errors.email && (
-          <p className="text-sm text-red-500 flex items-center space-x-1">
-            <AlertCircle className="w-4 h-4" />
-            <span>{errors.email}</span>
-          </p>
-        )}
-      </div>
 
-      {/* Role Selection */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Role</label>
-        <div className="relative">
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleInputChange}
-            className={`w-full px-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.role ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
-            disabled={isLoading}
-          >
-            <option value="student" className="flex items-center">
-              <BookOpen className="w-4 h-4 mr-2" />
-              Student
-            </option>
-            <option value="teacher" className="flex items-center">
-              <GraduationCap className="w-4 h-4 mr-2" />
-              Teacher
-            </option>
-          </select>
-        </div>
-        {errors.role && (
-          <p className="text-sm text-red-500 flex items-center space-x-1">
-            <AlertCircle className="w-4 h-4" />
-            <span>{errors.role}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Password */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Password</label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Lock className="w-5 h-5 text-gray-400" />
+        {/* Institution Type Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Institution Type</label>
+          <div className="relative">
+            <select
+              name="institution_type"
+              value={formData.institution_type}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.institution_type ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
+              disabled={isLoading}
+            >
+              <option value="school">School</option>
+              <option value="college">College</option>
+            </select>
           </div>
-          <input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            placeholder="Enter your password"
-            className={`w-full pl-12 pr-12 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.password ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
-            value={formData.password}
-            onChange={handleInputChange}
-            disabled={isLoading}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 transition-colors"
-            disabled={isLoading}
-          >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-          </button>
+          {errors.institution_type && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.institution_type}</span>
+            </p>
+          )}
         </div>
-        {errors.password && (
-          <p className="text-sm text-red-500 flex items-center space-x-1">
-            <AlertCircle className="w-4 h-4" />
-            <span>{errors.password}</span>
-          </p>
-        )}
       </div>
 
-      {/* Confirm Password */}
+      {/* Row 3: Role & Password */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Role Selection */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Role</label>
+          <div className="relative">
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleInputChange}
+              className={`w-full px-4 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.role ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
+              disabled={isLoading}
+            >
+              <option value="student" className="flex items-center">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Student
+              </option>
+              <option value="teacher" className="flex items-center">
+                <GraduationCap className="w-4 h-4 mr-2" />
+                Teacher
+              </option>
+            </select>
+          </div>
+          {errors.role && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.role}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Password</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Lock className="w-5 h-5 text-gray-400" />
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Enter your password"
+              className={`w-full pl-12 pr-12 py-4 bg-gray-50/80 backdrop-blur-sm border rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 hover:bg-gray-50 transition-colors ${errors.password ? "border-red-300 bg-red-50/50" : "border-gray-200"}`}
+              value={formData.password}
+              onChange={handleInputChange}
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+              disabled={isLoading}
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+          {errors.password && (
+            <p className="text-sm text-red-500 flex items-center space-x-1">
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.password}</span>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Row 4: Confirm Password (full width) */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-gray-700">Confirm Password</label>
         <div className="relative">
@@ -409,6 +458,8 @@ export default function SignupForm() {
           </p>
         )}
       </div>
+
+
 
       {/* General Error */}
       {errors.general && (

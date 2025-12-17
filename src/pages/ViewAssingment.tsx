@@ -299,7 +299,7 @@ export default function AssignmentsList() {
       </div>
 
       {/* Enhanced animations */}
-      <style jsx global>{`
+      <style>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }

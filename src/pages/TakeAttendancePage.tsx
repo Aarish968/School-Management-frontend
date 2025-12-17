@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getAttendance, updateAttendance } from "../api/attendanceService";
 
 const TeacherAttendancePage = () => {
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState<any[]>([]);
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [processingId, setProcessingId] = useState(null);
-  const [processingAction, setProcessingAction] = useState(null);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
 
   const fetchAttendance = async () => {
@@ -17,8 +17,8 @@ const TeacherAttendancePage = () => {
     try {
       const data = await getAttendance();
       setRecords(data);
-    } catch (err) {
-      setError(err.detail || "Failed to fetch attendance");
+    } catch (err: any) {
+      setError(err?.detail || "Failed to fetch attendance");
     } finally {
       setLoading(false);
     }
@@ -28,7 +28,7 @@ const TeacherAttendancePage = () => {
     fetchAttendance();
   }, []);
 
-  const handleUpdate = async (attendanceId, status) => {
+  const handleUpdate = async (attendanceId: number, status: string) => {
     setProcessingId(attendanceId);
     setProcessingAction(status);
     setError("");
@@ -41,15 +41,15 @@ const TeacherAttendancePage = () => {
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err) {
-      setError(err.detail || "Failed to update attendance");
+    } catch (err: any) {
+      setError(err?.detail || "Failed to update attendance");
     } finally {
       setProcessingId(null);
       setProcessingAction(null);
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: {
         bg: "bg-gradient-to-r from-amber-100 to-yellow-100",
@@ -84,7 +84,7 @@ const TeacherAttendancePage = () => {
     );
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -373,7 +373,7 @@ const TeacherAttendancePage = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in-up {
           from {
             opacity: 0;

@@ -8,9 +8,7 @@ export default function ProtectedRoute({ children }: { children: ReactElement })
   const location = useLocation();
 
   if (!isAuthenticated) {
-    const token = getToken();
-    const redirectTo = token ? "/login" : "/signup";
-    return <Navigate to={redirectTo} replace state={{ from: location }} />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   return children;

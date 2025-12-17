@@ -14,7 +14,7 @@ import {
   LogOut,
 } from "lucide-react";
 
-type UserRole = "student" | "teacher";
+type UserRole = "student" | "teacher" | "admin";
 
 export default function Navbar() {
   const { currentUser, isAuthenticated, logoutUser } = useAuth();
@@ -42,6 +42,10 @@ export default function Navbar() {
       { to: "/upload-homework", label: "Upload Homework / Assignments", icon: Users },
       { to: "/enter-marks", label: "Enter Exam Marks", icon: Users },
       { to: "/student-reports", label: "Student Progress Reports", icon: Users },
+    ],
+    admin: [
+      { to: "/admin-dashboard", label: "Admin Dashboard", icon: Users },
+      { to: "/manage-users", label: "Manage Users", icon: Users },
     ],
   };
 
@@ -185,9 +189,9 @@ export default function Navbar() {
                     />
                   </button>
 
-                  {showMore && role && (
+                  {showMore && role && role in roleMenus && (
                     <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
-                      {roleMenus[role]?.map(({ to, label, icon: Icon }) => (
+                      {roleMenus[role as UserRole]?.map(({ to, label, icon: Icon }) => (
                         <Link
                           key={to}
                           to={to}
@@ -377,7 +381,7 @@ export default function Navbar() {
                     Upload Home-Work & Assignment
                   </Link>
 
-                  {role && roleMenus[role]?.map(({ to, label, icon: Icon }) => (
+                  {role && role in roleMenus && roleMenus[role as UserRole]?.map(({ to, label, icon: Icon }) => (
                     <Link
                       key={to}
                       to={to}
