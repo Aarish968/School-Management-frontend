@@ -21,12 +21,7 @@ import {
   Zap,
   Heart
 } from "lucide-react";
-
-// Mock auth context for demo
-const useAuth = () => ({
-  currentUser: null, // Change to { full_name: "John Doe", role: "student" } to test authenticated views
-  isAuthenticated: false
-});
+import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);

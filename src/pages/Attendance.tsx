@@ -64,7 +64,7 @@ const StudentAttendancePage = () => {
     setError("");
     
     try {
-      await createAttendance(selectedTeacher);
+      await createAttendance(parseInt(selectedTeacher));
       setShowModal(false);
       setSelectedTeacher("");
       setSuccessMessage("Attendance marked successfully!");
@@ -86,7 +86,13 @@ const StudentAttendancePage = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, {
+      bg: string;
+      text: string;
+      border: string;
+      icon: string;
+      pulse: boolean;
+    }> = {
       pending: {
         bg: "bg-gradient-to-r from-amber-100 to-yellow-100",
         text: "text-amber-800",

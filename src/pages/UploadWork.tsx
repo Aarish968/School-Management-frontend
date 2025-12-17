@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { 
   Upload, 
   Users, 
@@ -6,21 +6,67 @@ import {
   Send, 
   X, 
   FileText, 
-  Calendar,
-  Clock,
   Check,
   Plus,
   Trash2,
-  User,
   Loader,
   AlertCircle
 } from 'lucide-react';
 import { getStudents, getTeachers } from '../api/authService';
+import type { StudentsResponse, TeachersResponse } from '../api/authService';
 import { uploadAssignment } from '../api/assignmentApi';
+
+// Type definitions
+interface FileAttachment {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+}
+
+interface FormData {
+  title: string;
+  description: string;
+  type: string;
+  selectedStudents: string[];
+  assignedTeacher: string;
+  dueDate: string;
+  dueTime: string;
+  attachments: FileAttachment[];
+}
+
+interface UIState {
+  dragActive: boolean;
+  showStudentModal: boolean;
+  isSubmitting: boolean;
+  submitSuccess: boolean;
+  isLoadingStudents: boolean;
+  isLoadingTeachers: boolean;
+  submitError: string | null;
+}
+
+interface FilteredStudent {
+  id: string;
+  name: string;
+  class: string;
+  email: string;
+  institution_type: string;
+  originalId: number;
+}
+
+interface FilteredTeacher {
+  id: string;
+  name: string;
+  subject: string;
+  email: string;
+  institution_type: string;
+  originalId: number;
+}
 
 const HomeworkUploadPage = () => {
   // State management
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
     type: 'homework',
@@ -31,7 +77,7 @@ const HomeworkUploadPage = () => {
     attachments: []
   });
 
-  const [uiState, setUiState] = useState({
+  const [uiState, setUiState] = useState<UIState>({
     dragActive: false,
     showStudentModal: false,
     isSubmitting: false,
@@ -42,7 +88,10 @@ const HomeworkUploadPage = () => {
   });
 
   // API data states
-  const [apiData, setApiData] = useState({
+  const [apiData, setApiData] = useState<{
+    students: StudentsResponse;
+    teachers: TeachersResponse;
+  }>({
     students: {
       school_students: [],
       college_students: []
@@ -53,10 +102,10 @@ const HomeworkUploadPage = () => {
     }
   });
 
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Data formatting functions
-  const formatAssignmentData = useCallback((formData, selectedStudentsData, assignedTeacherId) => {
+  const formatAssignmentData = useCallback((formData: FormData, selectedStudentsData: FilteredStudent[], assignedTeacherId: number) => {
     const apiFormData = new FormData();
 
     // Add basic fields
@@ -71,10 +120,10 @@ const HomeworkUploadPage = () => {
     }
 
     // Add students - FIXED: Extract actual numeric ID from the original data
-    selectedStudentsData.forEach((student) => {
+    selectedStudentsData.forEach((student: FilteredStudent) => {
       // Get the original student data to extract the real ID
       const studentType = formData.type === 'homework' ? 'school_students' : 'college_students';
-      const studentIndex = parseInt(student.id.split('_').pop());
+      const studentIndex = parseInt(student.id.split('_').pop() || '0');
       const originalStudent = apiData.students[studentType][studentIndex];
       
       // Use the actual ID from the original data, or fallback to index
@@ -83,7 +132,7 @@ const HomeworkUploadPage = () => {
     });
 
     // Add attachments
-    formData.attachments.forEach((attachment) => {
+    formData.attachments.forEach((attachment: FileAttachment) => {
       apiFormData.append('attachments', attachment.file, attachment.name);
     });
 
@@ -184,7 +233,7 @@ const HomeworkUploadPage = () => {
     }
   }, [formData.type, apiData.students]);
 
-  const filteredTeachers = useMemo(() => {
+  const filteredTeachers: FilteredTeacher[] = useMemo(() => {
     if (formData.type === 'homework') {
       return apiData.teachers.school_teachers.map((teacher, index) => ({
         id: `school_teacher_${index}`,
@@ -207,7 +256,7 @@ const HomeworkUploadPage = () => {
   }, [formData.type, apiData.teachers]);
 
   // Event handlers with useCallback for optimization
-  const handleInputChange = useCallback((field, value) => {
+  const handleInputChange = useCallback((field: keyof FormData, value: any) => {
     // If type changes, reset selected students and teacher
     if (field === 'type') {
       setFormData(prev => ({ 
@@ -221,14 +270,14 @@ const HomeworkUploadPage = () => {
     }
   }, []);
 
-  const handleDrag = useCallback((e) => {
+  const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const isDragEnter = e.type === 'dragenter' || e.type === 'dragover';
     setUiState(prev => ({ ...prev, dragActive: isDragEnter }));
   }, []);
 
-  const handleDrop = useCallback((e) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setUiState(prev => ({ ...prev, dragActive: false }));
@@ -238,8 +287,9 @@ const HomeworkUploadPage = () => {
     }
   }, []);
 
-  const handleFiles = useCallback((files) => {
-    const newFiles = Array.from(files).map(file => ({
+  const handleFiles = useCallback((files: FileList | null) => {
+    if (!files) return;
+    const newFiles: FileAttachment[] = Array.from(files).map((file: File) => ({
       id: `${Date.now()}-${Math.random()}`,
       file,
       name: file.name,
@@ -253,14 +303,14 @@ const HomeworkUploadPage = () => {
     }));
   }, []);
 
-  const removeAttachment = useCallback((id) => {
+  const removeAttachment = useCallback((id: string) => {
     setFormData(prev => ({
       ...prev,
       attachments: prev.attachments.filter(file => file.id !== id)
     }));
   }, []);
 
-  const toggleStudentSelection = useCallback((studentId) => {
+  const toggleStudentSelection = useCallback((studentId: string) => {
     setFormData(prev => ({
       ...prev,
       selectedStudents: prev.selectedStudents.includes(studentId)
@@ -308,11 +358,11 @@ const HomeworkUploadPage = () => {
       // Get selected students data
       const selectedStudentsData = formData.selectedStudents.map(id => 
         filteredStudents.find(s => s.id === id)
-      ).filter(Boolean);
+      ).filter((student): student is FilteredStudent => Boolean(student));
 
       // FIXED: Extract teacher ID correctly
       const selectedTeacher = filteredTeachers.find(t => t.id === formData.assignedTeacher);
-      const teacherId = selectedTeacher?.originalId || parseInt(formData.assignedTeacher.split('_').pop());
+      const teacherId = selectedTeacher?.originalId || parseInt(formData.assignedTeacher.split('_').pop() || '0');
 
       console.log('Selected Teacher:', selectedTeacher);
       console.log('Teacher ID to send:', teacherId);
@@ -357,11 +407,11 @@ const HomeworkUploadPage = () => {
         }));
       }, 3000);
       
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Submission error:', error);
       setUiState(prev => ({ 
         ...prev, 
-        submitError: error.message || 'Failed to upload assignment. Please try again.' 
+        submitError: (error as Error).message || 'Failed to upload assignment. Please try again.' 
       }));
     } finally {
       setUiState(prev => ({ ...prev, isSubmitting: false }));
@@ -369,7 +419,7 @@ const HomeworkUploadPage = () => {
   }, [formData, filteredStudents, filteredTeachers, formatAssignmentData]);
 
   // Utility functions
-  const formatFileSize = useCallback((bytes) => {
+  const formatFileSize = useCallback((bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -380,7 +430,7 @@ const HomeworkUploadPage = () => {
   const getSelectedStudentsDisplay = useMemo(() => {
     return formData.selectedStudents.map(id => 
       filteredStudents.find(s => s.id === id)
-    ).filter(Boolean);
+    ).filter((student): student is FilteredStudent => Boolean(student));
   }, [formData.selectedStudents, filteredStudents]);
 
   return (
@@ -836,7 +886,7 @@ const HomeworkUploadPage = () => {
       )}
 
       {/* Custom Styles */}
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in-up {
           from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }

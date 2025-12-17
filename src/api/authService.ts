@@ -10,6 +10,7 @@ export interface User {
   email: string;
   username: string;
   role: "student" | "teacher";
+  institution_type?: "school" | "college";
   address?: string;
   age?: number;
   image?: string;
@@ -45,13 +46,13 @@ export interface UpdateUser {
 }
 
 export interface StudentsResponse {
-  school_students: Array<{ full_name: string; classes: number; email: string; institution_type: string }>;
-  college_students: Array<{ full_name: string; department: string; email: string; institution_type: string }>;
+  school_students: Array<{ id: number; full_name: string; classes: number; email: string; institution_type: string }>;
+  college_students: Array<{ id: number; full_name: string; department: string; email: string; institution_type: string }>;
 }
 
 export interface TeachersResponse {
-  school_teachers: Array<{ full_name: string; subject: string; email: string; institution_type: string }>;
-  college_teachers: Array<{ full_name: string; department: string; email: string; institution_type: string }>;
+  school_teachers: Array<{ id: number; full_name: string; subject: string; email: string; institution_type: string }>;
+  college_teachers: Array<{ id: number; full_name: string; department: string; email: string; institution_type: string }>;
 }
 
 // ---------------------- ✅ Auth APIs ----------------------

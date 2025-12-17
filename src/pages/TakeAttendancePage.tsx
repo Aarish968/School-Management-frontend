@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import { getAttendance, updateAttendance } from "../api/attendanceService";
 
 const TeacherAttendancePage = () => {
   const [records, setRecords] = useState<any[]>([]);
-  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [processingId, setProcessingId] = useState<number | null>(null);
@@ -50,7 +48,13 @@ const TeacherAttendancePage = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
+    const statusConfig: Record<string, {
+      bg: string;
+      text: string;
+      border: string;
+      icon: string;
+      pulse: boolean;
+    }> = {
       pending: {
         bg: "bg-gradient-to-r from-amber-100 to-yellow-100",
         text: "text-amber-800",
