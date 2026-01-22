@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { signup as apiSignup, getMe } from "../../api/authService";
 import { useAuth } from "../../context/AuthContext";
 import { User, Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, GraduationCap, BookOpen } from "lucide-react";
+import PaymentModal from "../payment/PaymentModal";
 
 export default function SignupForm() {
   const [formData, setFormData] = useState({
@@ -28,6 +29,8 @@ export default function SignupForm() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingUserData, setPendingUserData] = useState<any>(null);
 
   const { login: authLogin } = useAuth();
   const navigate = useNavigate();
@@ -149,6 +152,56 @@ export default function SignupForm() {
         institution_type: formData.institution_type
       };
 
+      // If user is a student, create account first, then show payment modal
+      if (formData.role === "student") {
+        // Create the user account first
+        const data = await apiSignup(signupData);
+        console.log("Signup API response:", data);
+
+        const token = data?.access_token;
+        if (!token) throw new Error("No authentication token received from server");
+
+        // Store token temporarily
+        localStorage.setItem("token", token);
+        localStorage.setItem("authToken", token);
+
+        // Get user data
+        const userData = await getMe();
+        const userInfo = {
+          id: userData.id?.toString() || Date.now().toString(),
+          full_name: userData.full_name || signupData.full_name,
+          email: userData.email || signupData.email,
+          role: (userData.role ? userData.role.toLowerCase().trim() : signupData.role) as "student" | "teacher",
+        };
+
+        // Store user data temporarily
+        localStorage.setItem("currentUser", JSON.stringify(userInfo));
+
+        // Now show payment modal with actual user ID
+        setPendingUserData({
+          ...signupData,
+          userId: userData.id,
+          token: token,
+          userInfo: userInfo
+        });
+        setShowPaymentModal(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // For teachers, proceed with normal signup
+      await completeSignup(signupData);
+
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      handleSignupError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const completeSignup = async (signupData: any) => {
+    try {
       const data = await apiSignup(signupData);
       console.log("Signup API response:", data);
 
@@ -167,9 +220,9 @@ export default function SignupForm() {
         
         userInfo = {
           id: userData.id?.toString() || Date.now().toString(),
-          full_name: userData.full_name || formData.full_name,
-          email: userData.email || formData.email,
-          role: (userData.role ? userData.role.toLowerCase().trim() : formData.role) as "student" | "teacher",
+          full_name: userData.full_name || signupData.full_name,
+          email: userData.email || signupData.email,
+          role: (userData.role ? userData.role.toLowerCase().trim() : signupData.role) as "student" | "teacher",
         };
       } catch (meError) {
         console.warn("Failed to get user data from /me endpoint:", meError);
@@ -177,9 +230,9 @@ export default function SignupForm() {
         // Fallback: use form data
         userInfo = {
           id: Date.now().toString(),
-          full_name: formData.full_name,
-          email: formData.email,
-          role: formData.role,
+          full_name: signupData.full_name,
+          email: signupData.email,
+          role: signupData.role,
         };
       }
 
@@ -207,28 +260,66 @@ export default function SignupForm() {
       }, 1000);
 
     } catch (err: any) {
-      console.error("Signup error:", err);
-
-      let errorMessage = "Signup failed. Please try again.";
-      if (err?.response?.status === 409) {
-        errorMessage = "An account with this email already exists.";
-      } else if (err?.response?.status === 400) {
-        errorMessage = "Please check your input data and try again.";
-      } else if (err?.response?.status >= 500) {
-        errorMessage = "Server error. Please try again later.";
-      } else if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-
-      setErrors(prev => ({
-        ...prev,
-        general: errorMessage
-      }));
-    } finally {
-      setIsLoading(false);
+      console.error("Signup completion error:", err);
+      handleSignupError(err);
     }
+  };
+
+  const handleSignupError = (err: any) => {
+    let errorMessage = "Signup failed. Please try again.";
+    if (err?.response?.status === 409) {
+      errorMessage = "An account with this email already exists.";
+    } else if (err?.response?.status === 400) {
+      errorMessage = "Please check your input data and try again.";
+    } else if (err?.response?.status >= 500) {
+      errorMessage = "Server error. Please try again later.";
+    } else if (err?.response?.data?.message) {
+      errorMessage = err.response.data.message;
+    } else if (err?.message) {
+      errorMessage = err.message;
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      general: errorMessage
+    }));
+  };
+
+  const handlePaymentSuccess = async () => {
+    setShowPaymentModal(false);
+    setSuccessMessage("Payment successful! Registration completed!");
+    
+    if (pendingUserData && pendingUserData.userInfo) {
+      // Update auth context with the already created user
+      authLogin({
+        id: parseInt(pendingUserData.userInfo.id),
+        full_name: pendingUserData.userInfo.full_name,
+        email: pendingUserData.userInfo.email,
+        role: pendingUserData.userInfo.role,
+        institution_type: null
+      }, pendingUserData.token);
+
+      // Redirect to dashboard
+      setTimeout(() => {
+        navigate("/");
+      }, 1000);
+      
+      setPendingUserData(null);
+    }
+  };
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
+    
+    // If user was created but payment was cancelled, we should clean up
+    if (pendingUserData && pendingUserData.token) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("currentUser");
+    }
+    
+    setPendingUserData(null);
+    setIsLoading(false);
   };
 
   return (
@@ -475,8 +566,21 @@ export default function SignupForm() {
         disabled={isLoading}
         className="w-full py-4 rounded-2xl font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 disabled:opacity-60 transition-opacity"
       >
-        {isLoading ? "Creating Account..." : "Create Account"}
+        {isLoading ? "Creating Account..." : formData.role === "student" ? "Proceed to Payment" : "Create Account"}
       </button>
+
+      {/* Payment Info for Students */}
+      {formData.role === "student" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center">
+          <div className="flex items-center justify-center space-x-2 text-blue-600 mb-2">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="font-medium">Registration Fee: ₹50</span>
+          </div>
+          <p className="text-sm text-blue-600">
+            A one-time registration fee is required for student accounts
+          </p>
+        </div>
+      )}
 
       {/* Login Link */}
       <div className="text-center">
@@ -490,6 +594,21 @@ export default function SignupForm() {
           </Link>
         </p>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && pendingUserData && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={handlePaymentClose}
+          onPaymentSuccess={handlePaymentSuccess}
+          studentData={{
+            id: pendingUserData.userId || 0,
+            full_name: pendingUserData.full_name,
+            email: pendingUserData.email
+          }}
+          amount={50}
+        />
+      )}
     </form>
   );
 }
