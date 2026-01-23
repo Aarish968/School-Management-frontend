@@ -9,6 +9,10 @@ import AttendancePage from "../pages/Attendance";
 import TeacherAttendancePage from "../pages/TakeAttendancePage";
 import AssignmentsList from "../pages/ViewAssingment";
 import AssignmentView from "../pages/AssignmentView";
+import GradesPage from "../pages/Grades";
+import ReportCardPage from "../pages/ReportCard";
+import EnterMarksPage from "../pages/EnterMarks";
+import StudentReportsPage from "../pages/StudentReports";
 import ProtectedRoute from "./ProtectedRoute";
 import GuestRoute from "./GuestRoute";
 
@@ -23,6 +27,10 @@ const routes: RouteType[] = [
   { path: "/take-attendance", element: <ProtectedRoute><TeacherAttendancePage /></ProtectedRoute> },
   { path: "/homework", element: <ProtectedRoute><AssignmentsList /></ProtectedRoute> },
   { path: "/assignments/:id", element: <ProtectedRoute><AssignmentView /></ProtectedRoute> },
+  { path: "/grades", element: <ProtectedRoute><GradesPage /></ProtectedRoute> },
+  { path: "/report-card", element: <ProtectedRoute><ReportCardPage /></ProtectedRoute> },
+  { path: "/enter-marks", element: <ProtectedRoute><EnterMarksPage /></ProtectedRoute> },
+  { path: "/student-reports", element: <ProtectedRoute><StudentReportsPage /></ProtectedRoute> },
 ];
 
 export default routes;

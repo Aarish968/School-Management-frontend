@@ -32,22 +32,37 @@ export default function Navbar() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const roleMenus: Record<UserRole, { to: string; label: string; icon: any }[]> = {
-    student: [
-      { to: "/timetable", label: "Timetable", icon: Users },
-      { to: "/results", label: "Results & Report Cards", icon: Users },
-      { to: "/study-materials", label: "Download Notes & Study Material", icon: BookOpen },
-    ],
-    teacher: [
-      { to: "/upload-homework", label: "Upload Homework / Assignments", icon: Users },
-      { to: "/enter-marks", label: "Enter Exam Marks", icon: Users },
-      { to: "/student-reports", label: "Student Progress Reports", icon: Users },
-    ],
-    admin: [
-      { to: "/admin-dashboard", label: "Admin Dashboard", icon: Users },
-      { to: "/manage-users", label: "Manage Users", icon: Users },
-    ],
+  // Dynamic menu based on user role and institution type
+  const getMenuItems = (userRole: UserRole, institutionType?: string) => {
+    const baseMenus: Record<UserRole, { to: string; label: string; icon: any }[]> = {
+      student: [
+        // Show grades for college students, report card for school students
+        ...(institutionType === "college" 
+          ? [{ to: "/grades", label: "My Grades", icon: BookOpen }]
+          : [{ to: "/report-card", label: "Report Card", icon: Users }]
+        ),
+        { to: "/timetable", label: "Timetable", icon: Users },
+        { to: "/study-materials", label: "Download Notes & Study Material", icon: BookOpen },
+      ],
+      teacher: [
+        { to: "/upload-homework", label: "Upload Homework / Assignments", icon: Users },
+        // Show different grade entry options based on institution type
+        ...(institutionType === "college" 
+          ? [{ to: "/grades", label: "Enter Student Grades", icon: BookOpen }]
+          : [{ to: "/enter-marks", label: "Enter Report Card Marks", icon: Users }]
+        ),
+        { to: "/student-reports", label: "Student Progress Reports", icon: Users },
+      ],
+      admin: [
+        { to: "/admin-dashboard", label: "Admin Dashboard", icon: Users },
+        { to: "/manage-users", label: "Manage Users", icon: Users },
+      ],
+    };
+    
+    return baseMenus[userRole] || [];
   };
+
+  const roleMenus = getMenuItems(role as UserRole, currentUser?.institution_type || undefined);
 
   const commonMenuItems = [
     { to: "/profile", label: "My Profile", icon: Users },
@@ -189,9 +204,9 @@ export default function Navbar() {
                     />
                   </button>
 
-                  {showMore && role && role in roleMenus && (
+                  {showMore && role && roleMenus.length > 0 && (
                     <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
-                      {roleMenus[role as UserRole]?.map(({ to, label, icon: Icon }) => (
+                      {roleMenus.map(({ to, label, icon: Icon }) => (
                         <Link
                           key={to}
                           to={to}
@@ -381,7 +396,7 @@ export default function Navbar() {
                     Upload Home-Work & Assignment
                   </Link>
 
-                  {role && role in roleMenus && roleMenus[role as UserRole]?.map(({ to, label, icon: Icon }) => (
+                  {role && roleMenus.length > 0 && roleMenus.map(({ to, label, icon: Icon }) => (
                     <Link
                       key={to}
                       to={to}
