@@ -90,6 +90,11 @@ export const getTeachers = async (): Promise<TeachersResponse> => {
   return res.data;
 };
 
+export const googleLogin = async (token: string): Promise<AuthResponse> => {
+  const res = await api.post("/auth/google", { token });
+  return res.data;
+};
+
 export function getToken(): string | null {
   return localStorage.getItem("token");
 }
